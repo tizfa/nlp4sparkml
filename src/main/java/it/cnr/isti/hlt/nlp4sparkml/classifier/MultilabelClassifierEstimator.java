@@ -33,6 +33,7 @@ import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.storage.StorageLevel;
 
 /**
  * A generic multilabel multiclass classifier in the form of a Spark ML estimator.
@@ -41,8 +42,20 @@ import org.apache.spark.sql.types.StructType;
  */
 public abstract class MultilabelClassifierEstimator<T extends Model<T>> extends Estimator<T> {
 
-    private final Param<String> inputCol = new Param<String>(this, "inputCol", "Input column name");
-    private final Param<String> outputCol = new Param<String>(this, "outputCol", "Output column name");
+    private final Param<String> inputCol;
+    private final String uid;
+
+    public MultilabelClassifierEstimator() {
+        uid = UID.generateUID(getClass());
+        inputCol = new Param<String>(this, "inputCol", "Input column data name");
+        setDefault(inputCol, "points");
+    }
+
+
+    // ------ Generated param getter to ensure that Scala params() function works well! --------
+    public Param<String> inputCol() {
+        return inputCol;
+    }
 
     /**
      * Get the input column name.
@@ -53,24 +66,18 @@ public abstract class MultilabelClassifierEstimator<T extends Model<T>> extends 
         return getOrDefault(inputCol);
     }
 
+    /**
+     * Set the input column name. The input column must be in format as coded in
+     * {@link DataUtils#multilabelPointDataType()} method.
+     *
+     * @param inputCol The input column name.
+     * @return This classifier.
+     */
     public MultilabelClassifierEstimator<T> setInputCol(String inputCol) {
         set(this.inputCol, inputCol);
         return this;
     }
 
-    /**
-     * Get the output column name.
-     *
-     * @return The output column name.
-     */
-    public String getOutputCol() {
-        return getOrDefault(outputCol);
-    }
-
-    public MultilabelClassifierEstimator<T> setOutputCol(String outputCol) {
-        set(this.outputCol, outputCol);
-        return this;
-    }
 
     /**
      * Declare all the necessary broadcast variables. The subclasses need to store the broadcast variables somewhere
@@ -90,21 +97,20 @@ public abstract class MultilabelClassifierEstimator<T extends Model<T>> extends 
     public T fit(DataFrame dataset) {
         Cond.requireNotNull(dataset, "dataset");
         StructType updatedSchema = transformSchema(dataset.schema());
-        DataFrame df = dataset.withColumn(getOutputCol(), dataset.col(getInputCol()));
-        JavaRDD<Row> rows = df.javaRDD();
+        //DataFrame df = dataset.withColumn(getOutputCol(), dataset.col(getInputCol()));
+        DataFrame df = dataset;
+        JavaRDD<Row> rows = df.javaRDD().persist(StorageLevel.MEMORY_AND_DISK_SER());
         int nf = DataUtils.computeNumFeaturesFromDataFrame(rows, getInputCol());
         JavaSparkContext sc = new JavaSparkContext(rows.context());
         Broadcast<Integer> numFeatures = sc.broadcast(nf);
         JavaRDD<MultilabelPoint> inputPoints = rows.map(row -> {
-            int inIndex = row.fieldIndex(getInputCol());
-            int outIndex = row.fieldIndex(getOutputCol());
-            Row inputPoint = row.getStruct(inIndex);
             MultilabelPoint pt = DataUtils.toMultilabelPoint(row, getInputCol(), numFeatures.value());
             return pt;
         });
 
         initBroadcastVariables(sc);
         T model = buildClassifier(inputPoints, nf);
+        model.setParent(this);
         destroyBroadcastVariables();
         return model;
     }
@@ -112,7 +118,7 @@ public abstract class MultilabelClassifierEstimator<T extends Model<T>> extends 
     /**
      * Build the specific learning model by processing input training points available in the specified RDD.
      *
-     * @param inputPoints The set of input points used as training data.
+     * @param inputPoints The set of input points used as training data. The input points are not cached.
      * @param numFeatures The total number of features available in training dataset.
      * @return The corresponding classifier.
      */
@@ -121,31 +127,12 @@ public abstract class MultilabelClassifierEstimator<T extends Model<T>> extends 
 
     @Override
     public StructType transformSchema(StructType structType) {
-        // TODO In an estimator not sure which is the purpose of this method. Until now, return
-        // the same schema as input schema.
-
-        /*DataType inputType = structType.apply(getInputCol()).dataType();
-        this.validateInputType(inputType);
-        List<String> names = Arrays.asList(structType.fieldNames());
-        Cond.require(!names.contains(getOutputCol()), "The output column " + getOutputCol() + " already exists in this schema!");
-        List<StructField> fields = new ArrayList<>();
-        for (int i = 0; i < structType.fields().length; i++) {
-            fields.add(structType.fields()[i]);
-        }
-        DataType outDataType = DataUtils.pointClassificationResultsDataType();
-        fields.add(DataTypes.createStructField(getOutputCol(), outDataType, false));
-        return DataTypes.createStructType(fields);*/
         return structType;
     }
 
-    protected void validateInputType(DataType inputType) {
-        Cond.requireNotNull(inputType, "inputType");
-        Cond.require(inputType instanceof StructType, "The type of 'inputType' parameter must be 'StructType'");
-        DataUtils.checkMultilabelPointDataType((StructType) inputType);
-    }
 
     @Override
     public String uid() {
-        return UID.generateUID(getClass());
+        return uid;
     }
 }

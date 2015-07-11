@@ -17,19 +17,14 @@
  * ******************
  */
 
-package it.cnr.isti.hlt.nlp4sparkml.classifier.adaboost_mh;
+package it.cnr.isti.hlt.nlp4sparkml.classifier.boosting;
 
 import it.cnr.isti.hlt.nlp4sparkml.classifier.MultilabelClassifierEstimator;
-import it.cnr.isti.hlt.nlp4sparkml.classifier.MultilabelClassifierModel;
 import it.cnr.isti.hlt.nlp4sparkml.data.MultilabelPoint;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
-import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.ml.Estimator;
 import org.apache.spark.ml.param.Param;
-import org.apache.spark.sql.DataFrame;
-import org.apache.spark.sql.types.StructType;
 
 /**
  * A Spark ML estimator using AdaBoost.MH as learning algorithm.
@@ -38,11 +33,13 @@ import org.apache.spark.sql.types.StructType;
  */
 public class AdaBoostMHEstimator extends MultilabelClassifierEstimator<BoostClassifierModel> {
 
-    private final Param<Integer> numIterations = new Param<Integer>(this, "numIterations", "The number of iterations in boosting process");
+    private final Param<Integer> numIterations;
 
     public AdaBoostMHEstimator() {
+        numIterations = new Param<Integer>(this, "numIterations", "The number of iterations in boosting process");
         setDefault(numIterations, 200);
     }
+
 
     @Override
     protected void initBroadcastVariables(JavaSparkContext sc) {
@@ -59,10 +56,20 @@ public class AdaBoostMHEstimator extends MultilabelClassifierEstimator<BoostClas
         AdaBoostMHLearner learner = new AdaBoostMHLearner(new JavaSparkContext(inputPoints.context()));
         learner.setNumIterations(getNumIterations());
         BoostClassifier bc = learner.buildModel(inputPoints);
-        return new BoostClassifierModel(bc, numFeatures);
+        return new BoostClassifierModel(this, bc, numFeatures);
     }
 
     public int getNumIterations() {
         return getOrDefault(numIterations);
+    }
+
+    public AdaBoostMHEstimator setNumIterations(int numIterations) {
+        Cond.require(numIterations > 0, "The number of iterations must be greater than 0");
+        set(this.numIterations, numIterations);
+        return this;
+    }
+
+    public Param<Integer> numIterations() {
+        return numIterations;
     }
 }

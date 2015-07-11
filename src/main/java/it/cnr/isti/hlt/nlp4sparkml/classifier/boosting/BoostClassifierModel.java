@@ -17,7 +17,7 @@
  * ******************
  */
 
-package it.cnr.isti.hlt.nlp4sparkml.classifier.adaboost_mh;
+package it.cnr.isti.hlt.nlp4sparkml.classifier.boosting;
 
 import it.cnr.isti.hlt.nlp4sparkml.classifier.MultilabelClassifierModel;
 import it.cnr.isti.hlt.nlp4sparkml.data.MultilabelPoint;
@@ -25,6 +25,7 @@ import it.cnr.isti.hlt.nlp4sparkml.data.PointClassificationResults;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.ml.Estimator;
 
 /**
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
@@ -35,8 +36,8 @@ public class BoostClassifierModel extends MultilabelClassifierModel<BoostClassif
 
     private Broadcast<BoostClassifier> bcModel;
 
-    public BoostClassifierModel(BoostClassifier bc, int numFeatures) {
-        super(numFeatures);
+    public BoostClassifierModel(Estimator parent, BoostClassifier bc, int numFeatures) {
+        super(parent, numFeatures);
         Cond.requireNotNull(bc, "bc");
         this.bc = bc;
     }
@@ -53,8 +54,4 @@ public class BoostClassifierModel extends MultilabelClassifierModel<BoostClassif
         return cl.classify(inputPoint);
     }
 
-    @Override
-    protected void destroyBroadcastVariables() {
-        bcModel.destroy(false);
-    }
 }

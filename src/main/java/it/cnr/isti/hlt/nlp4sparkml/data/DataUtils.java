@@ -26,9 +26,13 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.mllib.linalg.SparseVector;
-import org.apache.spark.mllib.linalg.Vectors;
+import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.*;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
 import java.io.BufferedReader;
@@ -45,7 +49,7 @@ import java.util.List;
 public class DataUtils {
 
     public static final String POINT_ID = "pointID";
-    public static final String FEATURES = "labels";
+    public static final String FEATURES = "features";
     public static final String WEIGHTS = "weights";
     public static final String LABELS = "labels";
     public static final String SCORES = "scores";
@@ -198,6 +202,14 @@ public class DataUtils {
         return docs;
     }
 
+    /**
+     * Compute the number of distinct features used in the specified RDD. Each line in the RDD must
+     * be in LibSvm format.
+     *
+     * @param lines The dataset to be analyzed.
+     * @return The number of distinct features found on RDD. The valid features IDs will be in the
+     * range [0, numFeatures-1].
+     */
     public static int computeNumFeaturesFromLibSvmFormat(JavaRDD<String> lines) {
         int maxFeatureID = lines.map(line -> {
             if (line.isEmpty())
@@ -220,6 +232,15 @@ public class DataUtils {
     }
 
 
+    /**
+     * Compute the number of distinct features used in the specified RDD. The data contained in
+     * column {@code fieldName} must be in the format as coded in {@link #multilabelPointDataType()}.
+     *
+     * @param rows      The RDD to be analyzed.
+     * @param fieldName The column containing the interesting data.
+     * @return The number of distict features used. The valid features IDs will be in the
+     * range [0, numFeatures-1].
+     */
     public static int computeNumFeaturesFromDataFrame(JavaRDD<Row> rows, String fieldName) {
         int maxFeatureID = rows.map(row -> {
             Row rowFeatures = row.getStruct(row.fieldIndex(fieldName));
@@ -329,6 +350,13 @@ public class DataUtils {
         return st;
     }
 
+
+    public static Row fromMultilabelPoint(MultilabelPoint pt) {
+        Cond.requireNotNull(pt, "pt");
+        return RowFactory.create(pt.getPointID(), pt.getFeatures(), pt.getWeights(), pt.getLabels());
+    }
+
+
     public static MultilabelPoint toMultilabelPoint(Row row, String fieldName, int numFeatures) {
         Cond.requireNotNull(row, "row");
         Cond.requireNotNull(fieldName, "fieldName");
@@ -355,14 +383,28 @@ public class DataUtils {
         return st;
     }
 
+    /**
+     * Check if the specified data type have a structure compatible with a multilabel point data type. If the
+     * structure is not compatible, the method will raise an exception.
+     *
+     * @param dt The data type to be checked.
+     */
     public static void checkMultilabelPointDataType(StructType dt) {
         Cond.require(dt.fieldIndex(POINT_ID) >= 0, "The field " + POINT_ID + " does not exist!");
+        Cond.require(dt.fieldIndex(FEATURES) >= 0, "The field " + FEATURES + " does not exist!");
+        Cond.require(dt.fieldIndex(WEIGHTS) >= 0, "The field " + WEIGHTS + " does not exist!");
         Cond.require(dt.fieldIndex(LABELS) >= 0, "The field " + LABELS + " does not exist!");
-        Cond.require(dt.fieldIndex(SCORES) >= 0, "The field " + SCORES + " does not exist!");
-        Cond.require(dt.fieldIndex(POSITIVE_THRESHOLDS) >= 0, "The field " + POSITIVE_THRESHOLDS + " does not exist!");
     }
 
 
+    /**
+     * Convert the row data contained in {@code fieldName} field to an instance of class {@link PointClassificationResults}.
+     * The column data must be in format as specified in {@link #pointClassificationResultsDataType()} code.
+     *
+     * @param row       The row containing data to be converted.
+     * @param fieldName The field name inside the row.
+     * @return A corresponding instance.
+     */
     public static PointClassificationResults toPointClassificationResults(Row row, String fieldName) {
         Cond.requireNotNull(row, "row");
         Cond.requireNotNull(fieldName, "fieldName");
@@ -374,10 +416,16 @@ public class DataUtils {
         int[] labels = DataUtils.toIntArray(clResults.getList(clResults.fieldIndex(DataUtils.LABELS)));
         double[] scores = DataUtils.toDoubleArray(clResults.getList(clResults.fieldIndex(DataUtils.SCORES)));
         double[] positiveThreshold = DataUtils.toDoubleArray(clResults.getList(clResults.fieldIndex(DataUtils.POSITIVE_THRESHOLDS)));
-        return new PointClassificationResults(row, fieldName);
+        return new PointClassificationResults(pointID, labels, scores, positiveThreshold);
     }
 
 
+    /**
+     * Convert the specified list of integers to a native array.
+     *
+     * @param l The list to convert.
+     * @return The resulting array.
+     */
     public static int[] toIntArray(List<Integer> l) {
         Cond.requireNotNull(l, "l");
         int[] ret = new int[l.size()];
@@ -387,6 +435,12 @@ public class DataUtils {
     }
 
 
+    /**
+     * Convert the specified list of doubles to a native array.
+     *
+     * @param l The list to convert.
+     * @return The resulting array.
+     */
     public static double[] toDoubleArray(List<Double> l) {
         Cond.requireNotNull(l, "l");
         double[] ret = new double[l.size()];
@@ -395,12 +449,56 @@ public class DataUtils {
         return ret;
     }
 
-    public static float[] toFloatArray(List<Float> l) {
-        Cond.requireNotNull(l, "l");
-        float[] ret = new float[l.size()];
-        for (int i = 0; i < l.size(); i++)
-            ret[i] = l.get(i);
-        return ret;
+
+    public static class MultilabelPointFieldInfo implements Serializable {
+        private final String pointIDField;
+        private final String featuresField;
+        private final String weightsField;
+        private final String labelsField;
+
+        public MultilabelPointFieldInfo(String pointIDField, String featuresField, String weightsField, String labelsField) {
+            Cond.requireNotNull(pointIDField, "pointIDField");
+            Cond.requireNotNull(featuresField, "featuresField");
+            Cond.requireNotNull(weightsField, "weightsField");
+            Cond.requireNotNull(labelsField, "labelsField");
+            this.pointIDField = pointIDField;
+            this.featuresField = featuresField;
+            this.weightsField = weightsField;
+            this.labelsField = labelsField;
+        }
+
+        public String getPointIDField() {
+            return pointIDField;
+        }
+
+        public String getFeaturesField() {
+            return featuresField;
+        }
+
+        public String getWeightsField() {
+            return weightsField;
+        }
+
+        public String getLabelsField() {
+            return labelsField;
+        }
+    }
+
+    public static DataFrame toMultilabelPointDataFrame(DataFrame df, String multilabelPointFieldName, MultilabelPointFieldInfo fi) {
+        Cond.requireNotNull(df, "df");
+        Cond.requireNotNull(fi, "fi");
+        Cond.requireNotNull(multilabelPointFieldName, "multilabelPointFieldName");
+        JavaSparkContext sc = new JavaSparkContext(df.sqlContext().sparkContext());
+        Broadcast<MultilabelPointFieldInfo> fiBr = sc.broadcast(fi);
+        df.toJavaRDD().map(row -> {
+            MultilabelPointFieldInfo localFi = fiBr.value();
+            Object[] values = new Object[row.size()+1];
+            for (int i = 0; i < row.size(); i++) {
+                values[i] = row.get(i);
+            }
+            int pointID = row.getInt(row.fieldIndex(localFi.getPointIDField()));
+            int[] features = fe
+        });
     }
 
 

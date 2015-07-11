@@ -17,7 +17,7 @@
  * ******************
  */
 
-package it.cnr.isti.hlt.nlp4sparkml.classifier.adaboost_mh;
+package it.cnr.isti.hlt.nlp4sparkml.classifier.boosting;
 
 import it.cnr.isti.hlt.nlp4sparkml.data.DataUtils;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Logging;
@@ -89,7 +89,7 @@ public class AdaBoostMHLearner {
         if (docs == null)
             throw new NullPointerException("The set of input documents is 'null'");
 
-        Logging.l().info("Load initial data and generating all necessary internal data representations...");
+        Logging.l().info("Loading initial data and generating all necessary internal data representations...");
         if (docs.partitions().size() < getParallelismDegree()) {
             docs = docs.repartition(getParallelismDegree());
         }

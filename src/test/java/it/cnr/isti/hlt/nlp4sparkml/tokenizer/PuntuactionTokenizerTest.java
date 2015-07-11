@@ -17,7 +17,10 @@
  * ******************
  */
 
+package it.cnr.isti.hlt.nlp4sparkml.tokenizer;
+
 import it.cnr.isti.hlt.nlp4sparkml.tokenizer.PuntuactionTokenizer;
+import it.cnr.isti.hlt.nlp4sparkml.utils.Logging;
 import junit.framework.Assert;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
@@ -76,6 +79,8 @@ public class PuntuactionTokenizerTest {
 
     @Test
     public void pipelineTest() {
+        Logging.disableSparkLogging();
+        Logging.disableNLP4SparkMLLogging();
         SparkConf conf = new SparkConf();
         JavaSparkContext sc = new JavaSparkContext("local", "test", conf);
         try {
@@ -85,7 +90,6 @@ public class PuntuactionTokenizerTest {
             DataFrame dfOut = tokenizer.transform(df);
             Row[] rows = dfOut.select(dfOut.col("docID"), dfOut.col("tokens")).take(3);
             for (Row row : rows) {
-                System.out.println("Row docID: " + row.getInt(0));
                 List<String> tokens = row.getList(1);
                 for (String token : tokens) {
                     Assert.assertTrue(!token.isEmpty());

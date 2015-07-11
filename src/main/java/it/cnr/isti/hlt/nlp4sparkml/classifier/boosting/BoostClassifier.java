@@ -17,7 +17,7 @@
  * ******************
  */
 
-package it.cnr.isti.hlt.nlp4sparkml.classifier.adaboost_mh;/*
+package it.cnr.isti.hlt.nlp4sparkml.classifier.boosting;/*
  *
  * ****************
  * Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
@@ -36,20 +36,12 @@ package it.cnr.isti.hlt.nlp4sparkml.classifier.adaboost_mh;/*
  * ******************
  */
 
-import it.cnr.isti.hlt.nlp4sparkml.data.ContingencyTable;
 import it.cnr.isti.hlt.nlp4sparkml.data.MultilabelPoint;
 import it.cnr.isti.hlt.nlp4sparkml.data.PointClassificationResults;
-import it.cnr.isti.hlt.nlp4sparkml.utils.ClassificationResults;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
-import it.cnr.isti.hlt.nlp4sparkml.utils.Logging;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.broadcast.Broadcast;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 /**
  * A boosting classifier built with {@link AdaBoostMHLearner} or

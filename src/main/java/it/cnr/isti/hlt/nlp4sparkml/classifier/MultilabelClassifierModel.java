@@ -27,6 +27,7 @@ import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.ml.Estimator;
 import org.apache.spark.ml.Model;
 import org.apache.spark.ml.param.Param;
 import org.apache.spark.sql.DataFrame;
@@ -36,6 +37,7 @@ import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.storage.StorageLevel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,17 +50,25 @@ import java.util.List;
  */
 public abstract class MultilabelClassifierModel<T extends MultilabelClassifierModel<T>> extends Model<T> {
 
-    private final Param<String> inputCol = new Param<String>(this, "inputCol", "Input column name");
-    private final Param<String> outputCol = new Param<String>(this, "outputCol", "Output column name");
+    private final Param<String> inputCol;
+    private final Param<String> outputCol;
+    private final String uid;
 
     /**
      * The total number of features used to build the model.
      */
     private final int nf;
 
-    public MultilabelClassifierModel(int numFeatures) {
+    public MultilabelClassifierModel(Estimator parent, int numFeatures) {
+        Cond.requireNotNull(parent, "parent");
         Cond.require(numFeatures > 0, "The number of features is less than 1");
+        setParent(parent);
+        this.uid = UID.generateUID(getClass());
         this.nf = numFeatures;
+        inputCol = new Param<String>(this, "inputCol", "Input column name");
+        outputCol = new Param<String>(this, "outputCol", "Output column name");
+        setDefault(inputCol, "points");
+        setDefault(outputCol, "results");
     }
 
     /**
@@ -90,12 +100,20 @@ public abstract class MultilabelClassifierModel<T extends MultilabelClassifierMo
     }
 
 
+    public Param<String> inputCol() {
+        return inputCol;
+    }
+
+    public Param<String> outputCol() {
+        return outputCol;
+    }
+
     @Override
     public DataFrame transform(DataFrame dataset) {
         Cond.requireNotNull(dataset, "dataset");
         StructType updatedSchema = transformSchema(dataset.schema());
         DataFrame df = dataset.withColumn(getOutputCol(), dataset.col(getInputCol()));
-        JavaRDD<Row> rows = df.javaRDD();
+        JavaRDD<Row> rows = df.javaRDD().persist(StorageLevel.MEMORY_AND_DISK_SER());
         JavaSparkContext sc = new JavaSparkContext(rows.context());
         Broadcast<Integer> numFeatures = sc.broadcast(nf);
         initBroadcastVariables(sc);
@@ -108,14 +126,15 @@ public abstract class MultilabelClassifierModel<T extends MultilabelClassifierMo
                 if (i != outIndex)
                     values[i] = row.get(i);
                 else {
-                    Row r = RowFactory.create(res.getPointID(), Arrays.asList(res.getLabels()), Arrays.asList(res.getScores()), Arrays.asList(res.getPositiveThreshold()));
+                    Row r = RowFactory.create(res.getPointID(), res.getLabels(), res.getScores(), res.getPositiveThreshold());
                     values[i] = r;
                 }
             }
             return RowFactory.create(values);
         });
-        destroyBroadcastVariables();
-        return df.sqlContext().createDataFrame(updatedRows, updatedSchema);
+
+        DataFrame dfRet = df.sqlContext().createDataFrame(updatedRows, updatedSchema);
+        return dfRet;
     }
 
 
@@ -135,10 +154,6 @@ public abstract class MultilabelClassifierModel<T extends MultilabelClassifierMo
      */
     protected abstract PointClassificationResults classifyPoint(MultilabelPoint inputPoint);
 
-    /**
-     * Destroy the the broadcast variables previously defined with {@link #initBroadcastVariables(JavaSparkContext)}.
-     */
-    protected abstract void destroyBroadcastVariables();
 
     @Override
     public StructType transformSchema(StructType structType) {
@@ -163,6 +178,6 @@ public abstract class MultilabelClassifierModel<T extends MultilabelClassifierMo
 
     @Override
     public String uid() {
-        return UID.generateUID(getClass());
+        return uid;
     }
 }

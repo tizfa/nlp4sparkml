@@ -39,12 +39,27 @@ import java.util.List;
  */
 public abstract class UnaryTransformer extends Transformer {
 
-    private final Param<String> inputCol = new Param<String>(this, "inputCol", "Input column name");
-    private final Param<String> outputCol = new Param<String>(this, "outputCol", "Output column name");
+    private final Param<String> inputColParam;
+    private final Param<String> outputColParam;
     private final String uid;
 
     public UnaryTransformer() {
         uid = UID.generateUID(getClass());
+        inputColParam = new Param<String>(this, "inputCol", "Input column name");
+        outputColParam = new Param<String>(this, "outputCol", "Output column name");
+        setDefault(this.inputColParam, "inputCol");
+        setDefault(this.outputColParam, "outputCol");
+        Param[] params = params();
+    }
+
+    // ------ Generated param getter to ensure that Scala params() function works well! --------
+    public Param<String> getInputColParam() {
+        return inputColParam;
+    }
+
+    // ------ Generated param getter to ensure that Scala params() function works well! --------
+    public Param<String> getOutputColParam() {
+        return outputColParam;
     }
 
     /**
@@ -53,11 +68,13 @@ public abstract class UnaryTransformer extends Transformer {
      * @return The input column name.
      */
     public String getInputCol() {
-        return getOrDefault(inputCol);
+        return getOrDefault(inputColParam);
     }
 
+
+
     public UnaryTransformer setInputCol(String inputCol) {
-        set(this.inputCol, inputCol);
+        set(this.inputColParam, inputCol);
         return this;
     }
 
@@ -67,11 +84,11 @@ public abstract class UnaryTransformer extends Transformer {
      * @return The output column name.
      */
     public String getOutputCol() {
-        return getOrDefault(outputCol);
+        return getOrDefault(outputColParam);
     }
 
     public UnaryTransformer setOutputCol(String outputCol) {
-        set(this.outputCol, outputCol);
+        set(this.outputColParam, outputCol);
         return this;
     }
 

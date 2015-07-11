@@ -17,7 +17,7 @@
  * ******************
  */
 
-package it.cnr.isti.hlt.nlp4sparkml.classifier.adaboost_mh;
+package it.cnr.isti.hlt.nlp4sparkml.classifier.boosting;
 
 import java.io.Serializable;
 
