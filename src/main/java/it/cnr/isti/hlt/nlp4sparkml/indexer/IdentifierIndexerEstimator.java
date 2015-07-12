@@ -89,7 +89,7 @@ public class IdentifierIndexerEstimator extends Estimator<IdentifierIndexerModel
             }
             return ret;
         }).distinct().zipWithIndex().persist(StorageLevel.MEMORY_AND_DISK_SER());
-        return null;
+        return new IdentifierIndexerModel(identifiers);
     }
 
     @Override
