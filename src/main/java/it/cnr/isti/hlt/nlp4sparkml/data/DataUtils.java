@@ -38,10 +38,7 @@ import scala.Tuple2;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
@@ -450,13 +447,20 @@ public class DataUtils {
     }
 
 
-    public static class MultilabelPointFieldInfo implements Serializable {
+    public static <T> T[] toArray(Collection<T> collection) {
+        Cond.requireNotNull(collection, "collection");
+        T[] ret = (T[]) collection.toArray();
+        return ret;
+    }
+
+
+    public static class MultilabelPointFieldMapping implements Serializable {
         private final String pointIDField;
         private final String featuresField;
         private final String weightsField;
         private final String labelsField;
 
-        public MultilabelPointFieldInfo(String pointIDField, String featuresField, String weightsField, String labelsField) {
+        public MultilabelPointFieldMapping(String pointIDField, String featuresField, String weightsField, String labelsField) {
             Cond.requireNotNull(pointIDField, "pointIDField");
             Cond.requireNotNull(featuresField, "featuresField");
             Cond.requireNotNull(weightsField, "weightsField");
@@ -484,21 +488,50 @@ public class DataUtils {
         }
     }
 
-    public static DataFrame toMultilabelPointDataFrame(DataFrame df, String multilabelPointFieldName, MultilabelPointFieldInfo fi) {
+    /**
+     * Append a column with multilabel point schema starting from a source data frame and a
+     * mapping of the available fields in the source data frame with the semantic fields in class
+     * {@link MultilabelPoint}.
+     *
+     * @param df The source data frame.
+     * @param multilabelPointFieldName The name of new column to append to the end of source data frame.
+     * @param fi The mapping for fields in the source data frame.
+     * @return A new data frame with the new column added at the end of all available columns.
+     */
+    public static DataFrame toMultilabelPointDataFrame(DataFrame df, String multilabelPointFieldName, MultilabelPointFieldMapping fi) {
         Cond.requireNotNull(df, "df");
         Cond.requireNotNull(fi, "fi");
         Cond.requireNotNull(multilabelPointFieldName, "multilabelPointFieldName");
         JavaSparkContext sc = new JavaSparkContext(df.sqlContext().sparkContext());
-        Broadcast<MultilabelPointFieldInfo> fiBr = sc.broadcast(fi);
-        df.toJavaRDD().map(row -> {
-            MultilabelPointFieldInfo localFi = fiBr.value();
+        Broadcast<MultilabelPointFieldMapping> fiBr = sc.broadcast(fi);
+        JavaRDD<Row> updatedRows = df.toJavaRDD().map(row -> {
+            MultilabelPointFieldMapping localFi = fiBr.value();
             Object[] values = new Object[row.size()+1];
             for (int i = 0; i < row.size(); i++) {
                 values[i] = row.get(i);
             }
             int pointID = row.getInt(row.fieldIndex(localFi.getPointIDField()));
-            int[] features = fe
+            int[] features = toIntArray(row.getList(row.fieldIndex(localFi.getFeaturesField())));
+            double[] weights = toDoubleArray(row.getList(row.fieldIndex(localFi.getWeightsField())));
+            int[] labels = toIntArray(row.getList(row.fieldIndex(localFi.getLabelsField())));
+            Row pt = RowFactory.create(pointID, features, weights, labels);
+            values[values.length-1] = pt;
+            return RowFactory.create(values);
         });
+
+        // Update schema.
+        StructType oldSchema = df.schema();
+        List<StructField> fields = new ArrayList<>();
+        for (int i = 0; i < oldSchema.fields().length; i++) {
+            fields.add(oldSchema.fields()[i]);
+        }
+        DataType outDataType = DataUtils.multilabelPointDataType();
+        fields.add(DataTypes.createStructField(multilabelPointFieldName, outDataType, false));
+        StructType updatedSchema = DataTypes.createStructType(fields);
+
+        // Create new data frame.
+        DataFrame dfRet = df.sqlContext().createDataFrame(updatedRows, updatedSchema);
+        return dfRet;
     }
 
 
