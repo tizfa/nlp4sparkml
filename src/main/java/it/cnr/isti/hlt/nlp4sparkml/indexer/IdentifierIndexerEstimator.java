@@ -1,6 +1,7 @@
 /*
- * *****************
- *  Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
+ *
+ * ****************
+ * Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +14,24 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * *******************
+ * ******************
  */
 
 package it.cnr.isti.hlt.nlp4sparkml.indexer;
 
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
+import org.apache.spark.HashPartitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.ml.Estimator;
 import org.apache.spark.ml.param.Param;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
@@ -35,13 +41,15 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * Created by Tiziano on 11/07/2015.
+ * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
 public class IdentifierIndexerEstimator extends Estimator<IdentifierIndexerModel> {
 
     private final String uid;
     private final Param<List<String>> featuresFields;
 
+    static final String ID_FEATURE = "idFeature";
+    static final String FEATURE = "feature";
 
     public IdentifierIndexerEstimator() {
         this.uid = UID.generateUID(getClass());
@@ -67,15 +75,16 @@ public class IdentifierIndexerEstimator extends Estimator<IdentifierIndexerModel
     }
 
     @Override
-    public IdentifierIndexerModel fit(DataFrame dataset) {
-        Cond.requireNotNull(dataset, "dataset");
+    public IdentifierIndexerModel fit(DataFrame ds) {
+        Cond.requireNotNull(ds, "ds");
+        DataFrame dataset = ds.persist(StorageLevel.MEMORY_AND_DISK());
         List<String> fields = getFeaturesFields();
         Cond.require(fields.size() > 0, "The set of input fields must no be empty");
         Column[] cols = new Column[fields.size()];
         for (int i = 0; i < fields.size(); i++) {
             cols[i] = dataset.col(fields.get(i));
         }
-        JavaPairRDD<String, Long> identifiers =  dataset.select(cols).toJavaRDD().flatMap(row -> {
+        JavaRDD<Row> identifiers = dataset.select(cols).toJavaRDD().flatMap(row -> {
             HashMap<String, String> mapItems = new HashMap<>();
             ArrayList<String> ret = new ArrayList<>();
             for (int i = 0; i < row.length(); i++) {
@@ -88,8 +97,16 @@ public class IdentifierIndexerEstimator extends Estimator<IdentifierIndexerModel
                 }
             }
             return ret;
-        }).distinct().zipWithIndex().persist(StorageLevel.MEMORY_AND_DISK_SER());
-        return new IdentifierIndexerModel(identifiers);
+        }).distinct().zipWithIndex().map(v -> {
+            return RowFactory.create(v._1(), v._2());
+        });
+
+        StructType schema = DataTypes.createStructType(new StructField[]{
+                DataTypes.createStructField(FEATURE, DataTypes.StringType, false),
+                DataTypes.createStructField(ID_FEATURE, DataTypes.LongType, false)});
+        DataFrame dfIndexed = dataset.sqlContext().createDataFrame(identifiers, schema)
+                .persist(StorageLevel.MEMORY_AND_DISK());
+        return new IdentifierIndexerModel(dfIndexed, dfIndexed.count());
     }
 
     @Override

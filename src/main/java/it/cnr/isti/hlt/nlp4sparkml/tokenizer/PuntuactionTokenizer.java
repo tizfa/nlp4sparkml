@@ -33,11 +33,15 @@ public class PuntuactionTokenizer extends BaseUnaryTokenizer {
     private static final Pattern pattern = Pattern.compile("([\\s]+)|([\\:\\.\\,\\;\"\\<\\>\\[\\]\\{\\}\\\\/'\\\\&\\#\\*\\(\\)\\=\\?\\^\\!\\|])");
 
     @Override
-    protected List<String> extractTokens(String text) {
+    protected List<String> extractTokens(String tokenPrefix, String text) {
         String[] tokens = pattern.split(text.toLowerCase());
         ArrayList<String> ret = new ArrayList<>();
         for (String token : tokens) {
-            if (!token.isEmpty())
+            if (token.isEmpty())
+                continue;
+            if (!tokenPrefix.isEmpty())
+                ret.add(tokenPrefix + "_" + token);
+            else
                 ret.add(token);
         }
         return ret;

@@ -447,11 +447,6 @@ public class DataUtils {
     }
 
 
-    public static <T> T[] toArray(Collection<T> collection) {
-        Cond.requireNotNull(collection, "collection");
-        T[] ret = (T[]) collection.toArray();
-        return ret;
-    }
 
 
     public static class MultilabelPointFieldMapping implements Serializable {

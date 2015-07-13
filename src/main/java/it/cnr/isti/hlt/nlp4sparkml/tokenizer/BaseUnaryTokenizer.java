@@ -19,9 +19,11 @@
 
 package it.cnr.isti.hlt.nlp4sparkml.tokenizer;
 
+import it.cnr.isti.hlt.nlp4sparkml.data.DataUtils;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UnaryTransformer;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.ml.param.Param;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.*;
 
@@ -33,7 +35,40 @@ import java.util.List;
  */
 public abstract class BaseUnaryTokenizer extends UnaryTransformer {
 
+    private final Param<String> tokenPrefix;
+
     public BaseUnaryTokenizer() {
+        tokenPrefix = new Param<String>(this, "tokenPrefix", "The prefix to add to each extracted token");
+        setDefault(tokenPrefix, "");
+    }
+
+    public Param<String> tokenPrefix() {
+        return tokenPrefix;
+    }
+
+    /**
+     * Get the prefix to add in front of each extracted token.
+     *
+     * @return The token prefix to add to each extracted token.
+     */
+    public String getTokenPrefix() {
+        return getOrDefault(tokenPrefix);
+    }
+
+
+    public BaseUnaryTokenizer setTokenPrefix(String prefix) {
+        set(this.tokenPrefix, prefix);
+        return this;
+    }
+
+    @Override
+    public BaseUnaryTokenizer setInputCol(String inputCol) {
+        return (BaseUnaryTokenizer) super.setInputCol(inputCol);
+    }
+
+    @Override
+    public BaseUnaryTokenizer setOutputCol(String outputCol) {
+        return (BaseUnaryTokenizer) super.setOutputCol(outputCol);
     }
 
     @Override
@@ -50,25 +85,25 @@ public abstract class BaseUnaryTokenizer extends UnaryTransformer {
 
     @Override
     public DataFrame transform(DataFrame dataFrame) {
+        String tokenPrefix = getTokenPrefix();
+        String inputCol = getInputCol();
+        String outputCol = getOutputCol();
         Cond.requireNotNull(dataFrame, "dataFrame");
         StructType updatedSchema = transformSchema(dataFrame.schema());
-        DataFrame df = dataFrame.withColumn(getOutputCol(), dataFrame.col(getInputCol()));
-        JavaRDD<Row> rows = df.javaRDD();
+        JavaRDD<Row> rows = dataFrame.javaRDD();
         JavaRDD<Row> updatedRows = rows.map(row -> {
-            int inIndex = row.fieldIndex(getInputCol());
-            int outIndex = row.fieldIndex(getOutputCol());
+            int inIndex = row.fieldIndex(inputCol);
             String text = row.getString(inIndex);
-            List<String> tokens = extractTokens(text);
-            Object[] values = new Object[row.size()];
-            for (int i = 0; i < row.size(); i++) {
-                if (i != outIndex)
-                    values[i] = row.get(i);
-                else
-                    values[i] = tokens;
+            List<String> tokens = extractTokens(tokenPrefix, text);
+            Object[] values = new Object[row.size() + 1];
+            for (int i = 0; i < row.length(); i++) {
+                values[i] = row.get(i);
             }
+            values[values.length - 1] = tokens.toArray(new String[0]);
+
             return RowFactory.create(values);
         });
-        return df.sqlContext().createDataFrame(updatedRows, updatedSchema);
+        return dataFrame.sqlContext().createDataFrame(updatedRows, updatedSchema);
     }
 
 
@@ -85,5 +120,5 @@ public abstract class BaseUnaryTokenizer extends UnaryTransformer {
      * @param text The text to be analyzed.
      * @return The set of tokens extracted. The set can be empty.
      */
-    protected abstract List<String> extractTokens(String text);
+    protected abstract List<String> extractTokens(String tokenPrefix, String text);
 }

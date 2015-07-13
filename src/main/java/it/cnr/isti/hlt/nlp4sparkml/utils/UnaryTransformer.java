@@ -49,7 +49,6 @@ public abstract class UnaryTransformer extends Transformer {
         outputColParam = new Param<String>(this, "outputCol", "Output column name");
         setDefault(this.inputColParam, "inputCol");
         setDefault(this.outputColParam, "outputCol");
-        Param[] params = params();
     }
 
     // ------ Generated param getter to ensure that Scala params() function works well! --------
@@ -100,16 +99,18 @@ public abstract class UnaryTransformer extends Transformer {
 
     @Override
     public StructType transformSchema(StructType structType) {
-        DataType inputType = structType.apply(getInputCol()).dataType();
+        String inputCol = getInputCol();
+        String outputCol = getOutputCol();
+        DataType inputType = structType.apply(inputCol).dataType();
         this.validateInputType(inputType);
         List<String> names = Arrays.asList(structType.fieldNames());
-        Cond.require(!names.contains(getOutputCol()), "The output column " + getOutputCol() + " already exists in this schema!");
+        Cond.require(!names.contains(outputCol), "The output column " + outputCol + " already exists in this schema!");
         List<StructField> fields = new ArrayList<>();
         for (int i = 0; i < structType.fields().length; i++) {
             fields.add(structType.fields()[i]);
         }
         DataType dt = getOutputDataType();
-        fields.add(DataTypes.createStructField(getOutputCol(), dt, isOutputDataTypeNullable()));
+        fields.add(DataTypes.createStructField(outputCol, dt, isOutputDataTypeNullable()));
         return DataTypes.createStructType(fields);
     }
 
