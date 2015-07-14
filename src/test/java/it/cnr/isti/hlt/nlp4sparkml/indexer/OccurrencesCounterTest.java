@@ -1,7 +1,6 @@
 /*
- *
- * ****************
- * Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
+ * *****************
+ *  Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +13,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * ******************
+ * *******************
  */
 
 package it.cnr.isti.hlt.nlp4sparkml.indexer;
@@ -32,15 +31,17 @@ import org.junit.Test;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public class IdentifierIndexerEstimatorTest {
+public class OccurrencesCounterTest {
 
     private final static String[] text = {
-            "This is the first test! Uaooo!",
-            "Here the second one and...",
+            "This is the first test, yes the first! Uaooo, such a test.",
+            "Here the second one and the...",
             "The third one, the most cool."
     };
 
@@ -65,7 +66,7 @@ public class IdentifierIndexerEstimatorTest {
 
 
     protected DataFrame loadInitialData(JavaSparkContext sc) {
-        SQLContext sqlContext = new org.apache.spark.sql.SQLContext(sc);
+        SQLContext sqlContext = new SQLContext(sc);
 
         ArrayList<DocSample> docs = new ArrayList<>();
         for (int i = 0; i < text.length; i++) {
@@ -84,15 +85,12 @@ public class IdentifierIndexerEstimatorTest {
         try {
             DataFrame df = loadInitialData(sc);
             PuntuactionTokenizer tokenizer = new PuntuactionTokenizer();
-            tokenizer.setInputCol("content").setOutputCol("tokens").setTokenPrefix("t1");
+            tokenizer.setInputCol("content").setOutputCol("tokens");
             DataFrame dfFeatures = tokenizer.transform(df);
-            tokenizer.setTokenPrefix("t2").setOutputCol("tokens2");
-            dfFeatures = tokenizer.transform(dfFeatures);
 
             IdentifierIndexer identifierEstimator = new IdentifierIndexer();
             ArrayList<String> featuresFields = new ArrayList<>();
             featuresFields.add("tokens");
-            featuresFields.add("tokens2");
             identifierEstimator.setFeaturesFields(featuresFields);
             IdentifierIndexerModel identifierIndexer = identifierEstimator.fit(dfFeatures);
             DataFrame dfMapping = identifierIndexer.getInternalFeaturesMappinng().cache();
@@ -104,12 +102,20 @@ public class IdentifierIndexerEstimatorTest {
 
             System.out.println("---- DATASET INDEXED----");
             Assert.assertTrue(identifierIndexer != null);
-            DataFrame dfIndexedFeatures = identifierIndexer.setIdCol("docID").setInputCol(featuresFields).setOutputCol("featuresIdexed").transform(dfFeatures).cache();
+            DataFrame dfIndexedFeatures = identifierIndexer.setIdCol("docID").setInputCol(featuresFields).setOutputCol("featuresIndexed").transform(dfFeatures).cache();
             Assert.assertTrue(dfIndexedFeatures.count() == 3);
             Row[] rows = dfIndexedFeatures.take(3);
             for (Row r : rows) {
                 System.out.println(r.toString());
             }
+
+            System.out.println("---- DATASET INDEXED WITH OCCURRENCES----");
+            OccurrencesCounter counter = new OccurrencesCounter();
+            counter.setInputCol("featuresIndexed").setOutputCol("occurrences");
+            DataFrame dfOccur = counter.transform(dfIndexedFeatures);
+            List<Row> r = dfOccur.select(dfOccur.col("featuresIndexed"), dfOccur.col("occurrences")).collectAsList();
+            for (Row ro: r)
+                System.out.println(ro);
         } finally {
             if (sc != null)
                 sc.stop();

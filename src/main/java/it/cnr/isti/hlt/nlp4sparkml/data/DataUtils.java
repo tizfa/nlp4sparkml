@@ -530,6 +530,16 @@ public class DataUtils {
     }
 
 
+    public static Object[] copyValuesFromRow(Row row, int numAdditionalEmptyFields) {
+        Cond.requireNotNull(row, "row");
+        Cond.require(numAdditionalEmptyFields >= 0, "The number of additional fields must be greater equals than 0");
+        Object[] fields = new Object[row.length()+numAdditionalEmptyFields];
+        for (int i = 0; i < row.length(); i++)
+            fields[i] = row.get(i);
+        return fields;
+    }
+
+
     public static class LabelDocuments implements Serializable {
         private final int labelID;
         private final int[] documents;

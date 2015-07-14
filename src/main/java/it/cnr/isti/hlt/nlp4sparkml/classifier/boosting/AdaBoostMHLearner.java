@@ -48,6 +48,12 @@ public class AdaBoostMHLearner {
     private int numIterations;
 
     /**
+     * The number of features per partition.
+     */
+    private int numFeaturesPerPartition;
+
+
+    /**
      * The number of workers to use while analyzing the data.
      */
     private int parallelismDegree;
@@ -58,6 +64,15 @@ public class AdaBoostMHLearner {
         this.sc = sc;
         this.parallelismDegree = 8;
         this.numIterations = 200;
+        this.numFeaturesPerPartition = 1000;
+    }
+
+    public int getNumFeaturesPerPartition() {
+        return numFeaturesPerPartition;
+    }
+
+    public void setNumFeaturesPerPartition(int numFeaturesPerPartition) {
+        this.numFeaturesPerPartition = numFeaturesPerPartition;
     }
 
     /**
@@ -97,14 +112,16 @@ public class AdaBoostMHLearner {
         int numDocs = DataUtils.getNumDocuments(docs);
         int numLabels = DataUtils.getNumLabels(docs);
         JavaRDD<DataUtils.LabelDocuments> labelDocuments = DataUtils.getLabelDocuments(docs);
+        // TODO Check if we need to improve performance by better partition this RDD.
         if (labelDocuments.partitions().size() < getParallelismDegree()) {
             labelDocuments = labelDocuments.repartition(getParallelismDegree());
         }
         labelDocuments = labelDocuments.persist(StorageLevel.MEMORY_AND_DISK_SER());
 
-        JavaRDD<DataUtils.FeatureDocuments> featureDocuments = DataUtils.getFeatureDocuments(docs);
-        if (featureDocuments.partitions().size() < getParallelismDegree()) {
-            featureDocuments = featureDocuments.repartition(getParallelismDegree());
+        JavaRDD<DataUtils.FeatureDocuments> featureDocuments = DataUtils.getFeatureDocuments(docs).persist(StorageLevel.MEMORY_AND_DISK());
+        int numWantedPartitions = (int) Math.ceil(featureDocuments.count() / (double) numFeaturesPerPartition);
+        if (featureDocuments.partitions().size() < numWantedPartitions) {
+            featureDocuments = featureDocuments.repartition(numWantedPartitions);
         }
         featureDocuments = featureDocuments.persist(StorageLevel.MEMORY_AND_DISK_SER());
         Logging.l().info("Ok, done!");

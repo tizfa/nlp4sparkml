@@ -19,7 +19,6 @@
 
 package it.cnr.isti.hlt.nlp4sparkml.indexer;
 
-import it.cnr.isti.hlt.nlp4sparkml.data.DataUtils;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
 import org.apache.spark.api.java.JavaRDD;
@@ -158,12 +157,12 @@ public class IdentifierIndexerModel extends Model<IdentifierIndexerModel> {
             return RowFactory.create(pair._1(), pair._2());
         });
         StructType tmpSchema = DataTypes.createStructType(new StructField[]{
-                DataTypes.createStructField(IdentifierIndexerEstimator.FEATURE, DataTypes.StringType, false),
+                DataTypes.createStructField(IdentifierIndexer.FEATURE, DataTypes.StringType, false),
                 DataTypes.createStructField(getIdCol(), DataTypes.LongType, false)});
         DataFrame tmpDF = dataset.sqlContext().createDataFrame(indexedFeatures, tmpSchema).persist(StorageLevel.MEMORY_AND_DISK());
 
         // Join input rows with features IDs.
-        DataFrame joinedRes = tmpDF.join(featuresMapping, tmpDF.col(IdentifierIndexerEstimator.FEATURE).equalTo(featuresMapping.col(IdentifierIndexerEstimator.FEATURE))).select(tmpDF.col(getIdCol()), featuresMapping.col(IdentifierIndexerEstimator.ID_FEATURE));
+        DataFrame joinedRes = tmpDF.join(featuresMapping, tmpDF.col(IdentifierIndexer.FEATURE).equalTo(featuresMapping.col(IdentifierIndexer.FEATURE))).select(tmpDF.col(getIdCol()), featuresMapping.col(IdentifierIndexer.ID_FEATURE));
 
         // Generate a new dataframe by recombining all features of each specific row index.
         JavaRDD<Row> indexedRows = joinedRes.toJavaRDD().mapToPair(row -> {

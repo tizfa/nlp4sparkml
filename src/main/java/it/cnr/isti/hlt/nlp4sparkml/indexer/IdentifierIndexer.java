@@ -21,8 +21,6 @@ package it.cnr.isti.hlt.nlp4sparkml.indexer;
 
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
-import org.apache.spark.HashPartitioner;
-import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.ml.Estimator;
 import org.apache.spark.ml.param.Param;
@@ -36,14 +34,13 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
 /**
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public class IdentifierIndexerEstimator extends Estimator<IdentifierIndexerModel> {
+public class IdentifierIndexer extends Estimator<IdentifierIndexerModel> {
 
     private final String uid;
     private final Param<List<String>> featuresFields;
@@ -51,7 +48,7 @@ public class IdentifierIndexerEstimator extends Estimator<IdentifierIndexerModel
     static final String ID_FEATURE = "idFeature";
     static final String FEATURE = "feature";
 
-    public IdentifierIndexerEstimator() {
+    public IdentifierIndexer() {
         this.uid = UID.generateUID(getClass());
         featuresFields = new Param<>(this, "featuresFields", "The set of data frame fields containing the features to identify");
         ArrayList<String> feats = new ArrayList<>();
@@ -67,7 +64,7 @@ public class IdentifierIndexerEstimator extends Estimator<IdentifierIndexerModel
         return getOrDefault(featuresFields);
     }
 
-    public IdentifierIndexerEstimator setFeaturesFields(List<String> featuresFields) {
+    public IdentifierIndexer setFeaturesFields(List<String> featuresFields) {
         Cond.requireNotNull(featuresFields, "featuresFields");
         Cond.require(featuresFields.size() > 0, "The set of features fields is empty");
         set(this.featuresFields, featuresFields);
