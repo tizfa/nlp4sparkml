@@ -20,6 +20,8 @@
 package it.cnr.isti.hlt.nlp4sparkml.data;
 
 
+import it.cnr.isti.hlt.nlp4sparkml.datasource.TextualDocument;
+import it.cnr.isti.hlt.nlp4sparkml.datasource.TextualDocumentWithLabels;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.spark.api.java.JavaRDD;
@@ -29,6 +31,7 @@ import org.apache.spark.mllib.linalg.SparseVector;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -38,7 +41,10 @@ import scala.Tuple2;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
@@ -481,6 +487,36 @@ public class DataUtils {
         public String getLabelsField() {
             return labelsField;
         }
+    }
+
+
+    /**
+     * Create a new dataframe corresponding to the set of specified text documents. The name
+     * of the fieds in generated data frame correspond to the name of the private fields declared in the class
+     * {@link TextualDocumentWithLabels} and its ancestors.
+     *
+     * @param docs The set of documents to import in the created dataframe.
+     * @return The generated dataframe.
+     */
+    public static DataFrame toTextualDocumentWithlabelsDataFrame(JavaRDD<TextualDocumentWithLabels> docs) {
+        Cond.requireNotNull(docs, "docs");
+        SQLContext sqlContext = new SQLContext(docs.context());
+        return sqlContext.createDataFrame(docs, TextualDocumentWithLabels.class);
+    }
+
+
+    /**
+     * Create a new dataframe corresponding to the set of specified text documents. The name
+     * of the fieds in generated data frame correspond to the name of the private fields declared in the class
+     * {@link TextualDocumentWithLabels} and its ancestors.
+     *
+     * @param docs The set of documents to import in the created dataframe.
+     * @return The generated dataframe.
+     */
+    public static DataFrame toTextualDocumentDataFrame(JavaRDD<TextualDocument> docs) {
+        Cond.requireNotNull(docs, "docs");
+        SQLContext sqlContext = new SQLContext(docs.context());
+        return sqlContext.createDataFrame(docs, TextualDocument.class);
     }
 
     /**
