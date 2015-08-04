@@ -43,53 +43,16 @@ import java.util.Arrays;
  */
 public class Reuters21578DataSourceProviderTest {
 
-    private final static String[] text = {
-            "This is the first test! Uaooo!",
-            "Here the second one and...",
-            "The third one, the most cool."
-    };
-
-
-    public static class DocSample implements Serializable {
-        private final int docID;
-        private final String content;
-
-        public DocSample(int docID, String content) {
-            this.docID = docID;
-            this.content = content;
-        }
-
-        public int getDocID() {
-            return docID;
-        }
-
-        public String getContent() {
-            return content;
-        }
-    }
-
-
-    protected DataFrame loadInitialData(JavaSparkContext sc) {
-        SQLContext sqlContext = new SQLContext(sc);
-
-        ArrayList<DocSample> docs = new ArrayList<>();
-        for (int i = 0; i < text.length; i++) {
-            docs.add(new DocSample(i, text[i]));
-        }
-        JavaRDD<DocSample> rdd = sc.parallelize(docs);
-        return sqlContext.createDataFrame(rdd, DocSample.class);
-    }
-
 
     @Test
     public void pipelineTest() {
         Logging.disableSparkLogging();
         Logging.disableNLP4SparkMLLogging();
-        System.setProperty("hadoop.home.dir", "F:/winutil/");
+        System.setProperty("hadoop.home.dir", "c:/winutil/");
         SparkConf conf = new SparkConf();
-        JavaSparkContext sc = new JavaSparkContext("local[8]", "test", conf);
+        JavaSparkContext sc = new JavaSparkContext("local[*]", "test", conf);
         try {
-            Reuters21578DataSourceProvider provider = new Reuters21578DataSourceProvider("F:/Utenti/fagni/Documenti/dataset/reuters21578");
+            Reuters21578DataSourceProvider provider = new Reuters21578DataSourceProvider("C:/dataset/reuters21578");
             provider.setDocumentSetType(SetType.TRAINING);
             provider.setSplitType(Reuters21578SplitType.APTE);
             // Create dataframe from dataset.
@@ -97,14 +60,14 @@ public class Reuters21578DataSourceProviderTest {
 
             // Extract tokens.
             PuntuactionTokenizer tokenizer = new PuntuactionTokenizer();
-            df = tokenizer.setInputCol("content").setOutputCol("tokens").transform(df).cache();
+            DataFrame df2 = tokenizer.setInputCol("content").setOutputCol("tokens").transform(df).cache();
 
             // Indexing tokens.
             IdentifierIndexer indexer = new IdentifierIndexer();
-            IdentifierIndexerModel indexedFeatures = indexer.setFeaturesFields(Arrays.asList("tokens")).fit(df);
-            df = indexedFeatures.setInputCol(Arrays.asList("tokens")).setOutputCol("features").setIdCol("docID").transform(df);
+            IdentifierIndexerModel indexedFeatures = indexer.setFeaturesFields(Arrays.asList("tokens")).fit(df2);
+            DataFrame df3 = indexedFeatures.setInputCol(Arrays.asList("tokens")).setOutputCol("featuresIndexed").setIdCol("docID").transform(df2);
 
-            Row[] row = df.collect();
+            Row[] row = df3.where(df3.col("docID").equalTo("0")).collect();
             System.out.println("Rows: " + row.length);
 
         } finally {

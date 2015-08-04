@@ -139,11 +139,13 @@ public class IdentifierIndexerModel extends Model<IdentifierIndexerModel> {
         ArrayList<String> fieldsToAnalyze = new ArrayList<>(getInputCols());
         JavaSparkContext sc = new JavaSparkContext(dataset.sqlContext().sparkContext());
         Broadcast<ArrayList<String>> inputFields = sc.broadcast(fieldsToAnalyze);
+        String idCol = getIdCol();
+        String outputCol = getOutputCol();
 
         // Create a temporary data frame containing the expansion of all original features
         // and keeping track of the original row ID.
         JavaRDD<Row> indexedFeatures = dataset.toJavaRDD().flatMap(row -> {
-            long idRow = row.getLong(row.fieldIndex(getIdCol()));
+            long idRow = row.getLong(row.fieldIndex(idCol));
             List<String> inputFieldsLocal = inputFields.value();
             ArrayList<Tuple2<String, Long>> values = new ArrayList<Tuple2<String, Long>>();
             for (int i = 0; i < inputFieldsLocal.size(); i++) {
@@ -179,8 +181,8 @@ public class IdentifierIndexerModel extends Model<IdentifierIndexerModel> {
             return RowFactory.create(v._1(), featsArray);
         }).persist(StorageLevel.MEMORY_AND_DISK());
         StructType indexedSchema = DataTypes.createStructType(new StructField[]{
-                DataTypes.createStructField(getIdCol(), DataTypes.LongType, false),
-                DataTypes.createStructField(getOutputCol(), DataTypes.createArrayType(DataTypes.LongType), false)});
+                DataTypes.createStructField(idCol, DataTypes.LongType, false),
+                DataTypes.createStructField(outputCol, DataTypes.createArrayType(DataTypes.LongType), false)});
         DataFrame indexedDF = dataset.sqlContext().createDataFrame(indexedRows, indexedSchema).persist(StorageLevel.MEMORY_AND_DISK());
 
         // Merge the original dataset and the generated dataframe with the features indexed.
@@ -188,7 +190,7 @@ public class IdentifierIndexerModel extends Model<IdentifierIndexerModel> {
         Column[] cols = new Column[columnsOriginal.length + 1];
         for (int i = 0; i < columnsOriginal.length; i++)
             cols[i] = dataset.col(columnsOriginal[i]);
-        cols[cols.length - 1] = indexedDF.col(getOutputCol());
+        cols[cols.length - 1] = indexedDF.col(outputCol);
         DataFrame res = dataset.join(indexedDF, dataset.col(getIdCol()).equalTo(indexedDF.col(getIdCol()))).select(cols);
         return res;
     }
