@@ -26,16 +26,16 @@ import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierIndexer;
 import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierIndexerModel;
 import it.cnr.isti.hlt.nlp4sparkml.tokenizer.PuntuactionTokenizer;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Logging;
+import junit.framework.Assert;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SQLContext;
 import org.junit.Test;
 
-import java.io.Serializable;
-import java.util.ArrayList;
+import java.io.File;
+import java.net.URL;
 import java.util.Arrays;
 
 /**
@@ -48,11 +48,18 @@ public class Reuters21578DataSourceProviderTest {
     public void pipelineTest() {
         Logging.disableSparkLogging();
         Logging.disableNLP4SparkMLLogging();
-        System.setProperty("hadoop.home.dir", "c:/winutil/");
+
+        // Fix for Windows while using Spark in local mode.
+        if (SystemUtils.IS_OS_WINDOWS) {
+            System.setProperty("hadoop.home.dir", "f:/winutil/");
+        }
         SparkConf conf = new SparkConf();
         JavaSparkContext sc = new JavaSparkContext("local[*]", "test", conf);
         try {
-            Reuters21578DataSourceProvider provider = new Reuters21578DataSourceProvider("C:/dataset/reuters21578");
+            URL resourceUrl = getClass().
+                    getResource("/reuters21578");
+            File dsPath = new File(resourceUrl.toURI());
+            Reuters21578DataSourceProvider provider = new Reuters21578DataSourceProvider(dsPath.toString());
             provider.setDocumentSetType(SetType.TRAINING);
             provider.setSplitType(Reuters21578SplitType.APTE);
             // Create dataframe from dataset.
@@ -70,6 +77,8 @@ public class Reuters21578DataSourceProviderTest {
             Row[] row = df3.where(df3.col("docID").equalTo("0")).collect();
             System.out.println("Rows: " + row.length);
 
+        } catch (Exception e) {
+            Assert.fail();
         } finally {
             if (sc != null)
                 sc.stop();

@@ -1,6 +1,7 @@
 /*
- * *****************
- *  Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
+ *
+ * ****************
+ * Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * *******************
+ * ******************
  */
 
 package it.cnr.isti.hlt.nlp4sparkml.indexer;
@@ -73,16 +74,7 @@ public class OccurrencesCounter extends UnaryTransformer {
                 else
                     counter.put(feature, 1l);
             }
-            ArrayList<Long> featsOut = new ArrayList<>();
-            ArrayList<Long> occurrencesOut = new ArrayList<Long>();
-            Iterator<Long> keys = counter.keySet().iterator();
-            while (keys.hasNext()) {
-                long feature = keys.next();
-                long numOccurrences = counter.get(feature);
-                featsOut.add(feature);
-                occurrencesOut.add(numOccurrences);
-            }
-            Row r = RowFactory.create(featsOut.toArray(new Long[0]), occurrencesOut.toArray(new Long[0]));
+            Row r = OccurencesCounterHelper.createOccurrencesField(counter);
             fields[fields.length - 1] = r;
             return RowFactory.create(fields);
         });
