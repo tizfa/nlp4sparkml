@@ -37,18 +37,15 @@ import java.util.List;
  * transformation into an output column. The output schema
  * will be the same as the input schema with the addition at the
  * end of fields of a given output column.
- * column
  *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public abstract class UnaryModel<T extends UnaryModel<T>> extends Model<T> {
+public abstract class UnaryModel<T extends UnaryModel<T>> extends JavaModel<T> {
 
     private final Param<String> inputColParam;
     private final Param<String> outputColParam;
-    private final String uid;
 
     public UnaryModel() {
-        uid = UID.generateUID(getClass());
         inputColParam = new Param<String>(this, "inputCol", "Input column name");
         outputColParam = new Param<String>(this, "outputCol", "Output column name");
         setDefault(this.inputColParam, "inputCol");
@@ -95,10 +92,6 @@ public abstract class UnaryModel<T extends UnaryModel<T>> extends Model<T> {
     }
 
 
-    @Override
-    public String uid() {
-        return uid;
-    }
 
     @Override
     public StructType transformSchema(StructType structType) {

@@ -21,10 +21,14 @@ package it.cnr.isti.hlt.nlp4sparkml.utils;
 
 import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.param.Param;
+import org.apache.spark.ml.param.ParamMap;
+import org.apache.spark.ml.param.ParamPair;
 import org.apache.spark.sql.types.*;
+import scala.collection.JavaConversions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -37,14 +41,12 @@ import java.util.List;
  *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public abstract class UnaryTransformer extends Transformer {
+public abstract class UnaryTransformer extends JavaTransformer {
 
     private final Param<String> inputColParam;
     private final Param<String> outputColParam;
-    private final String uid;
 
     public UnaryTransformer() {
-        uid = UID.generateUID(getClass());
         inputColParam = new Param<String>(this, "inputCol", "Input column name");
         outputColParam = new Param<String>(this, "outputCol", "Output column name");
         setDefault(this.inputColParam, "inputCol");
@@ -92,10 +94,6 @@ public abstract class UnaryTransformer extends Transformer {
     }
 
 
-    @Override
-    public String uid() {
-        return uid;
-    }
 
     @Override
     public StructType transformSchema(StructType structType) {
@@ -137,4 +135,5 @@ public abstract class UnaryTransformer extends Transformer {
      * @throws Exception Raised if the input type is not valid.
      */
     protected abstract void validateInputType(DataType inputType);
+
 }

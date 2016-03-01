@@ -19,21 +19,11 @@
 
 package it.cnr.isti.hlt.nlp4sparkml.weighter;
 
-import it.cnr.isti.hlt.nlp4sparkml.data.DataUtils;
 import it.cnr.isti.hlt.nlp4sparkml.indexer.OccurencesCounterHelper;
-import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UnaryModel;
-import it.cnr.isti.hlt.nlp4sparkml.utils.UnaryTransformer;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.ml.Model;
-import org.apache.spark.sql.DataFrame;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
-import org.apache.spark.sql.types.*;
-import org.apache.spark.storage.StorageLevel;
-import scala.Tuple2;
-
-import java.util.*;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 
 /**
  * A skeleton abstract class for a standard weighter.

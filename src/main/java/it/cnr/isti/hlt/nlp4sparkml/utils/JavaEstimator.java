@@ -19,43 +19,20 @@
 
 package it.cnr.isti.hlt.nlp4sparkml.utils;
 
-import org.apache.spark.ml.param.Param;
+import org.apache.spark.ml.Estimator;
+import org.apache.spark.ml.Model;
 
 /**
+ * Base class for a Spark ML Java estimator.
+ *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public abstract class UnaryEstimator<T extends JavaModel<T>> extends JavaEstimator<T> {
-    private final Param<String> inputColParam;
+public abstract class JavaEstimator<T extends JavaModel<T>> extends Estimator<T> {
     private final String uid;
 
-    public UnaryEstimator() {
-        uid = UID.generateUID(getClass());
-        inputColParam = new Param<String>(this, "inputCol", "Input column name");
-        setDefault(inputColParam, "inputCol");
+    public JavaEstimator() {
+        this.uid = UID.generateUID(getClass());
     }
-
-
-    // ------ Generated param getter to ensure that Scala params() function works well! --------
-    public Param<String> getInputColParam() {
-        return inputColParam;
-    }
-
-
-    /**
-     * Get the input column name.
-     *
-     * @return The input column name.
-     */
-    public String getInputCol() {
-        return getOrDefault(inputColParam);
-    }
-
-
-    public UnaryEstimator<T> setInputCol(String inputCol) {
-        set(this.inputColParam, inputCol);
-        return this;
-    }
-
 
     @Override
     public String uid() {

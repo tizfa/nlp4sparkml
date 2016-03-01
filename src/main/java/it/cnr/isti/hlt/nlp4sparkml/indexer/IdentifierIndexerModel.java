@@ -20,6 +20,7 @@
 package it.cnr.isti.hlt.nlp4sparkml.indexer;
 
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
+import it.cnr.isti.hlt.nlp4sparkml.utils.JavaModel;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -42,9 +43,8 @@ import java.util.*;
 /**
  * Created by Tiziano on 11/07/2015.
  */
-public class IdentifierIndexerModel extends Model<IdentifierIndexerModel> {
+public class IdentifierIndexerModel extends JavaModel<IdentifierIndexerModel> {
 
-    private final String uid;
     private final DataFrame featuresMapping;
     private final long numDistinctFeatures;
 
@@ -55,7 +55,6 @@ public class IdentifierIndexerModel extends Model<IdentifierIndexerModel> {
     public IdentifierIndexerModel(DataFrame featuresMapping, long numDistinctFeatures) {
         Cond.requireNotNull(featuresMapping, "featuresMapping");
         Cond.require(numDistinctFeatures > 0, "The number of distinct features must be greater than 0");
-        this.uid = UID.generateUID(getClass());
         this.idCol = new Param<String>(this, "idCol", "The column which unique identifies a single row");
         setDefault(this.idCol, "id");
         this.inputCols = new Param<List<String>>(this, "inputColumns", "The set of input columns to be indexed");
@@ -209,8 +208,4 @@ public class IdentifierIndexerModel extends Model<IdentifierIndexerModel> {
         return DataTypes.createStructType(fields);
     }
 
-    @Override
-    public String uid() {
-        return uid;
-    }
 }

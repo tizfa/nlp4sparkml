@@ -19,15 +19,17 @@
 
 package it.cnr.isti.hlt.nlp4sparkml.tokenizer;
 
-import it.cnr.isti.hlt.nlp4sparkml.data.DataUtils;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UnaryTransformer;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.param.Param;
-import org.apache.spark.sql.*;
+import org.apache.spark.ml.param.ParamMap;
+import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -121,4 +123,6 @@ public abstract class BaseUnaryTokenizer extends UnaryTransformer {
      * @return The set of tokens extracted. The set can be empty.
      */
     protected abstract List<String> extractTokens(String tokenPrefix, String text);
+
+
 }
