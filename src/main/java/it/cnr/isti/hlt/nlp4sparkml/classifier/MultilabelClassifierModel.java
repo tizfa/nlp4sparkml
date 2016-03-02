@@ -126,7 +126,7 @@ public abstract class MultilabelClassifierModel<T extends MultilabelClassifierMo
                 if (i != outIndex)
                     values[i] = row.get(i);
                 else {
-                    Row r = RowFactory.create(res.getPointID(), res.getLabels(), res.getScores(), res.getPositiveThreshold());
+                    Row r = RowFactory.create(res.getPointID(), res.getLabels(), res.getScores(), res.getPositiveThresholds());
                     values[i] = r;
                 }
             }

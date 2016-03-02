@@ -20,7 +20,6 @@
 package it.cnr.isti.hlt.nlp4sparkml.data;
 
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
-import org.apache.spark.sql.Row;
 
 /**
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
@@ -29,16 +28,16 @@ public class PointClassificationResults {
     private final int pointID;
     private final int[] labels;
     private final double[] scores;
-    private final double[] positiveThreshold;
+    private final double[] positiveThresholds;
 
-    public PointClassificationResults(int pointID, int[] labels, double[] scores, double[] positiveThreshold) {
+    public PointClassificationResults(int pointID, int[] labels, double[] scores, double[] positiveThresholds) {
         Cond.requireNotNull(labels, "labels");
         Cond.requireNotNull(scores, "scores");
-        Cond.requireNotNull(positiveThreshold, "positiveThreshold");
+        Cond.requireNotNull(positiveThresholds, "positiveThresholds");
         this.pointID = pointID;
         this.labels = labels;
         this.scores = scores;
-        this.positiveThreshold = positiveThreshold;
+        this.positiveThresholds = positiveThresholds;
     }
 
     public int getPointID() {
@@ -53,7 +52,7 @@ public class PointClassificationResults {
         return scores;
     }
 
-    public double[] getPositiveThreshold() {
-        return positiveThreshold;
+    public double[] getPositiveThresholds() {
+        return positiveThresholds;
     }
 }

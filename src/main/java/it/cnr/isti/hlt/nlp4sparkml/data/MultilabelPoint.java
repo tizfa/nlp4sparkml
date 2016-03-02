@@ -26,7 +26,7 @@ import org.apache.spark.mllib.linalg.Vectors;
 import java.io.Serializable;
 
 /**
- * This is the representation of a point or document in a multiclass/binary
+ * The representation of a point or document in a multiclass/binary
  * problem.
  *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
