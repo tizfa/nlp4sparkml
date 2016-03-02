@@ -20,7 +20,6 @@
 package it.cnr.isti.hlt.nlp4sparkml.utils;
 
 import org.apache.spark.ml.Model;
-import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.param.Param;
 import org.apache.spark.ml.param.ParamMap;
 import org.apache.spark.ml.param.ParamPair;
@@ -50,7 +49,7 @@ abstract public class JavaModel<T extends JavaModel<T>> extends Model<T> {
      *
      * @param uid The uid of the model.
      */
-    private void setUID(String uid) {
+    protected void setUID(String uid) {
         this.uid = uid;
     }
 
@@ -58,7 +57,7 @@ abstract public class JavaModel<T extends JavaModel<T>> extends Model<T> {
     @Override
     public T copy(ParamMap extra) {
         try {
-            JavaModel<T> t = getClass().newInstance();
+            T t = (T) getClass().newInstance();
             t.setUID(uid());
             Param[] parms = params();
             for (int i = 0; i < parms.length; i++) {

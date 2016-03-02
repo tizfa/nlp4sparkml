@@ -20,9 +20,9 @@
 package it.cnr.isti.hlt.nlp4sparkml.indexer;
 
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
+import it.cnr.isti.hlt.nlp4sparkml.utils.JavaEstimator;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.ml.Estimator;
 import org.apache.spark.ml.param.Param;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.DataFrame;
@@ -38,9 +38,11 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
+ *
+ *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public class IdentifierIndexer extends Estimator<IdentifierIndexerModel> {
+public class IdentifierGenerator extends JavaEstimator<IdentifierGeneratorModel> {
 
     private final String uid;
     private final Param<List<String>> featuresFields;
@@ -48,7 +50,7 @@ public class IdentifierIndexer extends Estimator<IdentifierIndexerModel> {
     static final String ID_FEATURE = "idFeature";
     static final String FEATURE = "feature";
 
-    public IdentifierIndexer() {
+    public IdentifierGenerator() {
         this.uid = UID.generateUID(getClass());
         featuresFields = new Param<>(this, "featuresFields", "The set of data frame fields containing the features to identify");
         ArrayList<String> feats = new ArrayList<>();
@@ -64,7 +66,7 @@ public class IdentifierIndexer extends Estimator<IdentifierIndexerModel> {
         return getOrDefault(featuresFields);
     }
 
-    public IdentifierIndexer setFeaturesFields(List<String> featuresFields) {
+    public IdentifierGenerator setFeaturesFields(List<String> featuresFields) {
         Cond.requireNotNull(featuresFields, "featuresFields");
         Cond.require(featuresFields.size() > 0, "The set of features fields is empty");
         set(this.featuresFields, featuresFields);
@@ -72,7 +74,7 @@ public class IdentifierIndexer extends Estimator<IdentifierIndexerModel> {
     }
 
     @Override
-    public IdentifierIndexerModel fit(DataFrame ds) {
+    public IdentifierGeneratorModel fit(DataFrame ds) {
         Cond.requireNotNull(ds, "ds");
         DataFrame dataset = ds.persist(StorageLevel.MEMORY_AND_DISK());
         List<String> fields = getFeaturesFields();
@@ -103,7 +105,7 @@ public class IdentifierIndexer extends Estimator<IdentifierIndexerModel> {
                 DataTypes.createStructField(ID_FEATURE, DataTypes.LongType, false)});
         DataFrame dfIndexed = dataset.sqlContext().createDataFrame(identifiers, schema)
                 .persist(StorageLevel.MEMORY_AND_DISK());
-        return new IdentifierIndexerModel(dfIndexed, dfIndexed.count());
+        return new IdentifierGeneratorModel(dfIndexed, dfIndexed.count());
     }
 
     @Override

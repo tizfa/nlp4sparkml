@@ -34,7 +34,7 @@ import java.io.Serializable;
  * sb.append(results.getCt().toString() + "\n");
  * sb.append("********\n");
  * for (int i = 0; i < results.getNumDocs(); i++) {
- * int docID = results.getDocuments()[i];
+ * int docID = results.getFeatures()[i];
  * int[] labels = results.getLabels()[i];
  * int[] goldLabels = results.getGoldLabels()[i];
  * sb.append("DocID: " + docID + ", Labels assigned: " +

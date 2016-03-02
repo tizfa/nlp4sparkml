@@ -19,8 +19,8 @@
 
 package it.cnr.isti.hlt.nlp4sparkml.weighter;
 
-import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierIndexer;
-import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierIndexerModel;
+import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierGenerator;
+import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierGeneratorModel;
 import it.cnr.isti.hlt.nlp4sparkml.indexer.OccurrencesCounter;
 import it.cnr.isti.hlt.nlp4sparkml.tokenizer.PuntuactionTokenizer;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Logging;
@@ -91,11 +91,11 @@ public class TfIdfWeighterTest {
             tokenizer.setInputCol("content").setOutputCol("tokens");
             DataFrame dfFeatures = tokenizer.transform(df);
 
-            IdentifierIndexer identifierEstimator = new IdentifierIndexer();
+            IdentifierGenerator identifierEstimator = new IdentifierGenerator();
             ArrayList<String> featuresFields = new ArrayList<>();
             featuresFields.add("tokens");
             identifierEstimator.setFeaturesFields(featuresFields);
-            IdentifierIndexerModel identifierIndexer = identifierEstimator.fit(dfFeatures);
+            IdentifierGeneratorModel identifierIndexer = identifierEstimator.fit(dfFeatures);
             DataFrame dfMapping = identifierIndexer.getInternalFeaturesMappinng().cache();
             Row[] features = dfMapping.collect();
             System.out.println("---- FEATURES----");

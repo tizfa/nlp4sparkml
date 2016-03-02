@@ -23,6 +23,7 @@ import it.cnr.isti.hlt.nlp4sparkml.data.DataUtils;
 import it.cnr.isti.hlt.nlp4sparkml.data.MultilabelPoint;
 import it.cnr.isti.hlt.nlp4sparkml.data.PointClassificationResults;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
+import it.cnr.isti.hlt.nlp4sparkml.utils.JavaModel;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -48,7 +49,7 @@ import java.util.List;
  *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public abstract class MultilabelClassifierModel<T extends MultilabelClassifierModel<T>> extends Model<T> {
+public abstract class MultilabelClassifierModel<T extends MultilabelClassifierModel<T>> extends JavaModel<T> {
 
     private final Param<String> inputCol;
     private final Param<String> outputCol;

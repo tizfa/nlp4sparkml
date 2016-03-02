@@ -22,8 +22,8 @@ package it.cnr.isti.hlt.nlp4sparkml.datasource;
 import it.cnr.isti.hlt.nlp4sparkml.data.DataUtils;
 import it.cnr.isti.hlt.nlp4sparkml.datasource.reuters21578.Reuters21578DataSourceProvider;
 import it.cnr.isti.hlt.nlp4sparkml.datasource.reuters21578.Reuters21578SplitType;
-import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierIndexer;
-import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierIndexerModel;
+import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierGenerator;
+import it.cnr.isti.hlt.nlp4sparkml.indexer.IdentifierGeneratorModel;
 import it.cnr.isti.hlt.nlp4sparkml.tokenizer.PuntuactionTokenizer;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Logging;
 import junit.framework.Assert;
@@ -70,8 +70,8 @@ public class Reuters21578DataSourceProviderTest {
             DataFrame df2 = tokenizer.setInputCol("content").setOutputCol("tokens").transform(df).cache();
 
             // Indexing tokens.
-            IdentifierIndexer indexer = new IdentifierIndexer();
-            IdentifierIndexerModel indexedFeatures = indexer.setFeaturesFields(Arrays.asList("tokens")).fit(df2);
+            IdentifierGenerator indexer = new IdentifierGenerator();
+            IdentifierGeneratorModel indexedFeatures = indexer.setFeaturesFields(Arrays.asList("tokens")).fit(df2);
             DataFrame df3 = indexedFeatures.setInputCol(Arrays.asList("tokens")).setOutputCol("featuresIndexed").setIdCol("docID").transform(df2);
 
             Row[] row = df3.where(df3.col("docID").equalTo("0")).collect();

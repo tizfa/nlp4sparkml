@@ -50,7 +50,8 @@ public class BM25Weighter extends UnaryEstimator<BM25WeighterModel> {
 
     private Map<Long, Long> computeDistinctDocuments(JavaRDD<Row> ds, String inputCol) {
         return ds.flatMapToPair(row -> {
-            List<Long> features = OccurencesCounterHelper.getFeatures(row, inputCol);
+            OccurencesCounterHelper helper = OccurencesCounterHelper.getHelper(row, inputCol);
+            List<Long> features = helper.getFeatures();
             HashMap<Long, Long> distinctFeats = new HashMap<Long, Long>();
             for (long featID : features) {
                 if (distinctFeats.containsKey(featID))
@@ -72,7 +73,7 @@ public class BM25Weighter extends UnaryEstimator<BM25WeighterModel> {
         JavaSparkContext sc = new JavaSparkContext(ds.context());
         Accumulator<Double> accum = sc.accumulator(0d);
         ds.foreach(row -> {
-            List<Long> occurrences = OccurencesCounterHelper.getOccurrences(row, inputCol);
+            List<Long> occurrences = OccurencesCounterHelper.getHelper(row, inputCol).getOccurrences();
             long v = occurrences.stream().mapToLong(Long::longValue).sum();
             accum.add((double) v);
         });

@@ -21,11 +21,9 @@ package it.cnr.isti.hlt.nlp4sparkml.indexer;
 
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import it.cnr.isti.hlt.nlp4sparkml.utils.JavaModel;
-import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
-import org.apache.spark.ml.Model;
 import org.apache.spark.ml.param.Param;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.DataFrame;
@@ -43,7 +41,7 @@ import java.util.*;
 /**
  * Created by Tiziano on 11/07/2015.
  */
-public class IdentifierIndexerModel extends JavaModel<IdentifierIndexerModel> {
+public class IdentifierGeneratorModel extends JavaModel<IdentifierGeneratorModel> {
 
     private final DataFrame featuresMapping;
     private final long numDistinctFeatures;
@@ -52,7 +50,7 @@ public class IdentifierIndexerModel extends JavaModel<IdentifierIndexerModel> {
     private final Param<List<String>> inputCols;
     private final Param<String> outputCol;
 
-    public IdentifierIndexerModel(DataFrame featuresMapping, long numDistinctFeatures) {
+    public IdentifierGeneratorModel(DataFrame featuresMapping, long numDistinctFeatures) {
         Cond.requireNotNull(featuresMapping, "featuresMapping");
         Cond.require(numDistinctFeatures > 0, "The number of distinct features must be greater than 0");
         this.idCol = new Param<String>(this, "idCol", "The column which unique identifies a single row");
@@ -95,7 +93,7 @@ public class IdentifierIndexerModel extends JavaModel<IdentifierIndexerModel> {
         return getOrDefault(idCol);
     }
 
-    public IdentifierIndexerModel setIdCol(String idCol) {
+    public IdentifierGeneratorModel setIdCol(String idCol) {
         set(this.idCol, idCol);
         return this;
     }
@@ -110,7 +108,7 @@ public class IdentifierIndexerModel extends JavaModel<IdentifierIndexerModel> {
     }
 
 
-    public IdentifierIndexerModel setInputCol(List<String> inputCols) {
+    public IdentifierGeneratorModel setInputCol(List<String> inputCols) {
         Cond.requireNotNull(inputCols, "inputCols");
         Cond.require(inputCols.size() > 0, "The set of input columns must not be empty!");
         set(this.inputCols, inputCols);
@@ -126,7 +124,7 @@ public class IdentifierIndexerModel extends JavaModel<IdentifierIndexerModel> {
         return getOrDefault(outputCol);
     }
 
-    public IdentifierIndexerModel setOutputCol(String outputCol) {
+    public IdentifierGeneratorModel setOutputCol(String outputCol) {
         set(this.outputCol, outputCol);
         return this;
     }
@@ -158,12 +156,12 @@ public class IdentifierIndexerModel extends JavaModel<IdentifierIndexerModel> {
             return RowFactory.create(pair._1(), pair._2());
         });
         StructType tmpSchema = DataTypes.createStructType(new StructField[]{
-                DataTypes.createStructField(IdentifierIndexer.FEATURE, DataTypes.StringType, false),
+                DataTypes.createStructField(IdentifierGenerator.FEATURE, DataTypes.StringType, false),
                 DataTypes.createStructField(getIdCol(), DataTypes.LongType, false)});
         DataFrame tmpDF = dataset.sqlContext().createDataFrame(indexedFeatures, tmpSchema).persist(StorageLevel.MEMORY_AND_DISK());
 
         // Join input rows with features IDs.
-        DataFrame joinedRes = tmpDF.join(featuresMapping, tmpDF.col(IdentifierIndexer.FEATURE).equalTo(featuresMapping.col(IdentifierIndexer.FEATURE))).select(tmpDF.col(getIdCol()), featuresMapping.col(IdentifierIndexer.ID_FEATURE));
+        DataFrame joinedRes = tmpDF.join(featuresMapping, tmpDF.col(IdentifierGenerator.FEATURE).equalTo(featuresMapping.col(IdentifierGenerator.FEATURE))).select(tmpDF.col(getIdCol()), featuresMapping.col(IdentifierGenerator.ID_FEATURE));
 
         // Generate a new dataframe by recombining all features of each specific row index.
         JavaRDD<Row> indexedRows = joinedRes.toJavaRDD().mapToPair(row -> {

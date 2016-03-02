@@ -89,12 +89,12 @@ public class IdentifierIndexerEstimatorTest {
             tokenizer.setTokenPrefix("t2").setOutputCol("tokens2");
             dfFeatures = tokenizer.transform(dfFeatures);
 
-            IdentifierIndexer identifierEstimator = new IdentifierIndexer();
+            IdentifierGenerator identifierEstimator = new IdentifierGenerator();
             ArrayList<String> featuresFields = new ArrayList<>();
             featuresFields.add("tokens");
             featuresFields.add("tokens2");
             identifierEstimator.setFeaturesFields(featuresFields);
-            IdentifierIndexerModel identifierIndexer = identifierEstimator.fit(dfFeatures);
+            IdentifierGeneratorModel identifierIndexer = identifierEstimator.fit(dfFeatures);
             DataFrame dfMapping = identifierIndexer.getInternalFeaturesMappinng().cache();
             Row[] features = dfMapping.collect();
             System.out.println("---- FEATURES----");

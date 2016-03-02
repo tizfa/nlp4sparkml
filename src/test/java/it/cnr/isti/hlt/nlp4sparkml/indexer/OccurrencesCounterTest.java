@@ -1,6 +1,7 @@
 /*
- * *****************
- *  Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
+ *
+ * ****************
+ * Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * *******************
+ * ******************
  */
 
 package it.cnr.isti.hlt.nlp4sparkml.indexer;
@@ -31,7 +32,6 @@ import org.junit.Test;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -88,11 +88,11 @@ public class OccurrencesCounterTest {
             tokenizer.setInputCol("content").setOutputCol("tokens");
             DataFrame dfFeatures = tokenizer.transform(df);
 
-            IdentifierIndexer identifierEstimator = new IdentifierIndexer();
+            IdentifierGenerator identifierEstimator = new IdentifierGenerator();
             ArrayList<String> featuresFields = new ArrayList<>();
             featuresFields.add("tokens");
             identifierEstimator.setFeaturesFields(featuresFields);
-            IdentifierIndexerModel identifierIndexer = identifierEstimator.fit(dfFeatures);
+            IdentifierGeneratorModel identifierIndexer = identifierEstimator.fit(dfFeatures);
             DataFrame dfMapping = identifierIndexer.getInternalFeaturesMappinng().cache();
             Row[] features = dfMapping.collect();
             System.out.println("---- FEATURES----");

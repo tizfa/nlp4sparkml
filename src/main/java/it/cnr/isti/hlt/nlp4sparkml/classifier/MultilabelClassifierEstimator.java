@@ -22,6 +22,8 @@ package it.cnr.isti.hlt.nlp4sparkml.classifier;
 import it.cnr.isti.hlt.nlp4sparkml.data.DataUtils;
 import it.cnr.isti.hlt.nlp4sparkml.data.MultilabelPoint;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
+import it.cnr.isti.hlt.nlp4sparkml.utils.JavaEstimator;
+import it.cnr.isti.hlt.nlp4sparkml.utils.JavaModel;
 import it.cnr.isti.hlt.nlp4sparkml.utils.UID;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -40,7 +42,7 @@ import org.apache.spark.storage.StorageLevel;
  *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public abstract class MultilabelClassifierEstimator<T extends Model<T>> extends Estimator<T> {
+public abstract class MultilabelClassifierEstimator<T extends JavaModel<T>> extends JavaEstimator<T> {
 
     private final Param<String> inputCol;
     private final String uid;
