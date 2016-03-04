@@ -1,7 +1,30 @@
 /*
  *
  * ****************
- * Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
+ * This file is part of nlp4sparkml software package (https://github.com/tizfa/nlp4sparkml).
+ *
+ * Copyright 2016 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * ******************
+ */
+
+/*
+ *
+ * ****************
+ * This file is part of nlp4sparkml software package (https://github.com/tizfa/nlp4sparkml).
+ *
+ * Copyright 2016 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,13 +56,14 @@ import java.util.Date;
 
 /**
  * A Reuters21578 data source provider. The dataset is available here:
+ * http://www.daviddlewis.com/resources/testcollections/reuters21578/
  * <br/><br/>
  * NOTE: this class is a porting of an existing code we have used internally at our lab in several contexts,
  * so it is not clean and it would require to be optimized and rewritten better.
  *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
-public class Reuters21578DataSourceProvider extends TaggedDirTextualDataSourceProvider<TextualDocumentWithLabels> {
+public class Reuters21578DataSourceProvider extends TaggedDirTextualDataSourceProvider<LabeledTextualDocument> {
 
     private Reuters21578SplitType splitType;
 
@@ -50,7 +74,7 @@ public class Reuters21578DataSourceProvider extends TaggedDirTextualDataSourcePr
     }
 
     @Override
-    public JavaRDD<TextualDocumentWithLabels> readData(JavaSparkContext sc) {
+    public JavaRDD<LabeledTextualDocument> readData(JavaSparkContext sc) {
         Cond.requireNotNull(sc, "sc");
         return sc.wholeTextFiles(getInputDir()).filter(f -> {
             File fi = new File(f._1());
@@ -58,7 +82,7 @@ public class Reuters21578DataSourceProvider extends TaggedDirTextualDataSourcePr
             return fname.startsWith("reut2-") && fname.endsWith(".sgm");
         }).flatMap(f -> {
             String fileContent = f._2();
-            ArrayList<TextualDocumentWithLabels> docs = readDocuments(fileContent);
+            ArrayList<LabeledTextualDocument> docs = readDocuments(fileContent);
             return docs;
         }).zipWithIndex().map(v -> {
             v._1().setDocID(v._2());
@@ -86,14 +110,14 @@ public class Reuters21578DataSourceProvider extends TaggedDirTextualDataSourcePr
         this.splitType = splitType;
     }
 
-    protected ArrayList<TextualDocumentWithLabels> readDocuments(String fileContent) {
+    protected ArrayList<LabeledTextualDocument> readDocuments(String fileContent) {
         BufferedReader reader = new BufferedReader(new StringReader(fileContent));
         try {
             try {
-                ArrayList<TextualDocumentWithLabels> docs = new ArrayList<>();
+                ArrayList<LabeledTextualDocument> docs = new ArrayList<>();
                 String[] rawDocLines = readRawDocument(reader);
                 while (rawDocLines.length != 0) {
-                    TextualDocumentWithLabels doc = processRawDocument(rawDocLines);
+                    LabeledTextualDocument doc = processRawDocument(rawDocLines);
                     if (doc != null) {
                         docs.add(doc);
                     }
@@ -164,7 +188,7 @@ public class Reuters21578DataSourceProvider extends TaggedDirTextualDataSourcePr
      * @return An high level representation of the document or "null" if current
      * document must be excluded from set of available documents.
      */
-    protected TextualDocumentWithLabels processRawDocument(String[] lines) {
+    protected LabeledTextualDocument processRawDocument(String[] lines) {
         // Get the discriminating attributes of first line (tag REUTERS)
         String lewisSplit = getAttribute(lines[0], "LEWISSPLIT");
         String topics = getAttribute(lines[0], "TOPICS");
@@ -222,7 +246,7 @@ public class Reuters21578DataSourceProvider extends TaggedDirTextualDataSourcePr
 
         assert (lines[lines.length - 1].startsWith("</REUTERS>"));
 
-        return new TextualDocumentWithLabels(TextualDocument.UNASSIGNED_DOC_ID, docName, content, categories.toArray(new String[0]));
+        return new LabeledTextualDocument(TextualDocument.UNASSIGNED_DOC_ID, docName, content, categories.toArray(new String[0]));
     }
 
     protected String processAuthor(String[] lines, DocIterator it) {

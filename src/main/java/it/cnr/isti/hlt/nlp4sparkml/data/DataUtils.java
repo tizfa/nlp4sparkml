@@ -1,7 +1,30 @@
 /*
  *
  * ****************
- * Copyright 2015 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
+ * This file is part of nlp4sparkml software package (https://github.com/tizfa/nlp4sparkml).
+ *
+ * Copyright 2016 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * ******************
+ */
+
+/*
+ *
+ * ****************
+ * This file is part of nlp4sparkml software package (https://github.com/tizfa/nlp4sparkml).
+ *
+ * Copyright 2016 Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +43,8 @@
 package it.cnr.isti.hlt.nlp4sparkml.data;
 
 
+import it.cnr.isti.hlt.nlp4sparkml.datasource.LabeledTextualDocument;
 import it.cnr.isti.hlt.nlp4sparkml.datasource.TextualDocument;
-import it.cnr.isti.hlt.nlp4sparkml.datasource.TextualDocumentWithLabels;
 import it.cnr.isti.hlt.nlp4sparkml.utils.Cond;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.spark.api.java.JavaRDD;
@@ -47,6 +70,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * Utility class used to perform various operations on data.
+ *
  * @author Tiziano Fagni (tiziano.fagni@isti.cnr.it)
  */
 public class DataUtils {
@@ -59,7 +84,7 @@ public class DataUtils {
     public static final String POSITIVE_THRESHOLDS = "positiveThresholds";
 
     /**
-     * Load data file in LibSVm format. The documents IDs are assigned according to the row index in the original
+     * Load data file in LibSvm format. The documents IDs are assigned according to the row index in the original
      * file, i.e. useful at classification time. We are assuming that the feature IDs are the same as the training
      * file used to build the classification model.
      *
@@ -306,6 +331,12 @@ public class DataUtils {
         });
     }
 
+    /**
+     * Compute
+     *
+     * @param documents
+     * @return
+     */
     public static JavaRDD<FeatureDocuments> getFeatureDocuments(JavaRDD<MultilabelPoint> documents) {
         return documents.flatMapToPair(doc -> {
             SparseVector feats = doc.getFeaturesAsSparseVector();
@@ -343,6 +374,11 @@ public class DataUtils {
     }
 
 
+    /**
+     * Get the DataFrame struct type of a {@link MultilabelPoint} class.
+     *
+     * @return The corresponding DataFrame struct type.
+     */
     public static DataType multilabelPointDataType() {
         List<StructField> fields = new ArrayList<>();
         fields.add(DataTypes.createStructField(POINT_ID, DataTypes.IntegerType, false));
@@ -354,12 +390,27 @@ public class DataUtils {
     }
 
 
+    /**
+     * Create a row starting from a multi label point.
+     *
+     * @param pt The input point.
+     * @return A new row corresponding to the content of the specified point.
+     */
     public static Row fromMultilabelPoint(MultilabelPoint pt) {
         Cond.requireNotNull(pt, "pt");
         return RowFactory.create(pt.getPointID(), pt.getFeatures(), pt.getWeights(), pt.getLabels());
     }
 
 
+    /**
+     * Extract a multilabel point from the specified "row" by reading data contained in the sub-struct
+     * pointed by "fieldName" column.
+     *
+     * @param row         The row data.
+     * @param fieldName   The name of column containing multilabel point data.
+     * @param numFeatures The number of total features available in teh dataset.
+     * @return
+     */
     public static MultilabelPoint toMultilabelPoint(Row row, String fieldName, int numFeatures) {
         Cond.requireNotNull(row, "row");
         Cond.requireNotNull(fieldName, "fieldName");
@@ -376,6 +427,12 @@ public class DataUtils {
         return point;
     }
 
+
+    /**
+     * Create the struct used to represent a {@link PointClassificationResults} data type.
+     *
+     * @return The struct representing a {@link PointClassificationResults} data type
+     */
     public static DataType pointClassificationResultsDataType() {
         List<StructField> fields = new ArrayList<>();
         fields.add(DataTypes.createStructField(POINT_ID, DataTypes.IntegerType, false));
@@ -493,22 +550,22 @@ public class DataUtils {
     /**
      * Create a new dataframe corresponding to the set of specified text documents. The name
      * of the fieds in generated data frame correspond to the name of the private fields declared in the class
-     * {@link TextualDocumentWithLabels} and its ancestors.
+     * {@link LabeledTextualDocument} and its ancestors.
      *
      * @param docs The set of documents to import in the created dataframe.
      * @return The generated dataframe.
      */
-    public static DataFrame toTextualDocumentWithlabelsDataFrame(JavaRDD<TextualDocumentWithLabels> docs) {
+    public static DataFrame toLabeledTextualDocumentDataFrame(JavaRDD<LabeledTextualDocument> docs) {
         Cond.requireNotNull(docs, "docs");
         SQLContext sqlContext = new SQLContext(docs.context());
-        return sqlContext.createDataFrame(docs, TextualDocumentWithLabels.class);
+        return sqlContext.createDataFrame(docs, LabeledTextualDocument.class);
     }
 
 
     /**
      * Create a new dataframe corresponding to the set of specified text documents. The name
      * of the fieds in generated data frame correspond to the name of the private fields declared in the class
-     * {@link TextualDocumentWithLabels} and its ancestors.
+     * {@link LabeledTextualDocument} and its ancestors.
      *
      * @param docs The set of documents to import in the created dataframe.
      * @return The generated dataframe.
@@ -594,9 +651,24 @@ public class DataUtils {
         }
     }
 
+
+    /**
+     * Representation of a dataset per feature.
+     */
     public static class FeatureDocuments implements Serializable {
+        /**
+         * The feature ID.
+         */
         private final int featureID;
+
+        /**
+         * The set of document IDs where this feature occurs.
+         */
         private final int[] documents;
+
+        /**
+         * The set of label IDs associated to each document ID in {@link #documents} field.
+         */
         private final int[][] labels;
 
         public FeatureDocuments(int featureID, int[] documents, int[][] labels) {
@@ -605,14 +677,30 @@ public class DataUtils {
             this.labels = labels;
         }
 
+        /**
+         * Get the feature ID.
+         *
+         * @return The feature ID.
+         */
         public int getFeatureID() {
             return featureID;
         }
 
+        /**
+         * Get the set of document IDs associated with this feature.
+         *
+         * @return The set of document IDs associated with this feature.
+         */
         public int[] getDocuments() {
             return documents;
         }
 
+
+        /**
+         * Get the set of labels associated with each document ID specified by {@link #getDocuments()}.
+         *
+         * @return The set of labels associated with each document ID specified by {@link #getDocuments()}.
+         */
         public int[][] getLabels() {
             return labels;
         }
